@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>GEDCOM → Map</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+        />
+        <link rel="stylesheet" href="styles.css" />
+        <link
+            rel="manifest"
+            href='data:application/json,{"name":"GEDCOM mapper","display":"standalone"}'
+        />
+    </head>
+    <body>
+        <header>
+            <input
+                id="file"
+                type="file"
+                accept=".ged,.gedcom"
+                aria-label="Select GEDCOM file"
+            />
+            <button onclick="exportGeoJson()">Export GeoJSON</button>
+            <button onclick="exportGedcomWithCoords()">Export GEDCOM</button>
+            <select id="tileSelect" aria-label="Map style">
+                <option value="osm">OSM</option>
+                <option value="carto">CartoDB</option>
+                <option value="satellite">Satellite</option>
+            </select>
+            <button id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+            <div id="progress"><div id="progressBar"></div></div>
+        </header>
+        <main><div id="map"></div></main>
+        <section id="orphansSection">
+            <h3>Places without coordinates</h3>
+            <ul id="orphansList"></ul>
+        </section>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+        <script src="app.js"></script>
+    </body>
+</html>
