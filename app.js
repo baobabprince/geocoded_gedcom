@@ -36,9 +36,12 @@ document.body.dataset.theme = localStorage.getItem("theme") || "";
 /* ----------  progress ---------- */
 const pg = document.getElementById("progress");
 const bar = document.getElementById("progressBar");
+const pctText = pg.querySelector("span");
 function showProgress(pct) {
-  bar.style.width = pct + "%";
-  pg.style.display = pct === 100 ? "none" : "block";
+  const p = Math.round(pct);
+  bar.style.width = p + "%";
+  pctText.textContent = p + "%";
+  pg.style.display = p === 100 ? "none" : "block";
 }
 
 /* ----------  file ---------- */
