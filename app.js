@@ -37,10 +37,10 @@ document.body.dataset.theme = localStorage.getItem("theme") || "";
 const pg = document.getElementById("progress");
 const bar = document.getElementById("progressBar");
 const pctText = pg.querySelector("span");
-function showProgress(pct) {
+function showProgress(pct, current, total) {
   const p = Math.round(pct);
   bar.style.width = p + "%";
-  pctText.textContent = p + "%";
+  pctText.textContent = total ? `${current}/${total}` : `${p}%`;
   pg.style.display = p === 100 ? "none" : "block";
 }
 
@@ -130,7 +130,7 @@ async function geocodeAll() {
     } catch (e) {
       console.error(pName, e);
     }
-    showProgress(((i + 1) / uniquePlaces.length) * 100);
+    showProgress(((i + 1) / uniquePlaces.length) * 100, i + 1, uniquePlaces.length);
     await new Promise((r) => setTimeout(r, 1100));
   }
   places.forEach((p) => {
