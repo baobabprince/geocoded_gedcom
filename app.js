@@ -83,11 +83,6 @@ function parseGedcom(lines) {
         events.push({ tag, owner, id });
       }
     }
-    const dup = places.find((p) => p.name === place);
-    if (dup) {
-      dup.events.push(...events);
-      continue;
-    }
     places.push({
       name: place,
       events,
@@ -97,7 +92,7 @@ function parseGedcom(lines) {
       level,
     });
   }
-  console.log(`PLAC lines:${placCount}, unique:${places.length}`);
+  console.log(`PLAC lines:${placCount}, unique:${[...new Set(places.map(p => p.name))].length}`);
 }
 function getName(lines, start, type) {
   for (let i = start; i < lines.length && !/^0\s/.test(lines[i]); i++) {
@@ -108,32 +103,48 @@ function getName(lines, start, type) {
 }
 
 /* ----------  geocode ---------- */
+const LOCATIONIQ_API_KEY = "pk.a07e16331159695a101e7559938dc381";
+
 async function geocodeAll() {
-  const todo = places.filter((p) => p.lat === null);
+  const uniquePlaces = [...new Set(places.map((p) => p.name))];
+  const coords = new Map();
   showProgress(0);
-  for (let i = 0; i < todo.length; i++) {
-    const p = todo[i];
+  for (let i = 0; i < uniquePlaces.length; i++) {
+    const pName = uniquePlaces[i];
     try {
-      const res = await fetch(
-        "https://nominatim.openstreetmap.org/search?format=json&q=" +
-          encodeURIComponent(p.name) +
-          "&limit=1",
+      let res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(pName)}&limit=1`
       );
-      const json = await res.json();
+      let json = await res.json();
       if (json.length) {
-        p.lat = +json[0].lat;
-        p.lon = +json[0].lon;
+        coords.set(pName, { lat: +json[0].lat, lon: +json[0].lon });
+      } else {
+        res = await fetch(
+          `https://us1.locationiq.com/v1/search.php?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(pName)}&format=json`
+        );
+        json = await res.json();
+        if (json.length) {
+          coords.set(pName, { lat: +json[0].lat, lon: +json[0].lon });
+        }
       }
     } catch (e) {
-      console.error(p.name, e);
+      console.error(pName, e);
     }
-    showProgress(((i + 1) / todo.length) * 100);
+    showProgress(((i + 1) / uniquePlaces.length) * 100);
     await new Promise((r) => setTimeout(r, 1100));
   }
+  places.forEach((p) => {
+    if (coords.has(p.name)) {
+      p.lat = coords.get(p.name).lat;
+      p.lon = coords.get(p.name).lon;
+    }
+  });
   showProgress(100);
+  clusters.clearLayers();
   places.forEach(addOrUpdateMarker);
   updateOrphanList();
 }
+
 
 /* ----------  markers ---------- */
 function addOrUpdateMarker(p) {
@@ -200,18 +211,17 @@ function exportGedcomWithCoords() {
     .sort((a, b) => b.lineIndex - a.lineIndex)
     .forEach((p) => {
       const idx = p.lineIndex,
-        level = p.level,
-        indent = " ".repeat(level + 1);
+        level = p.level;
       let s = idx + 1,
         e = s;
-      while (e < out.length && +out[e].match(/^\s*(\d+)/)[1] > level) e++;
+      while (e < out.length && (!out[e].match(/^\d+/) || +out[e].match(/^(\d+)/)[1] > level)) e++;
       out.splice(s, e - s);
       out.splice(
-        s,
+        idx + 1,
         0,
-        `${indent}MAP`,
-        `${indent}1 LATI ${p.lat.toFixed(6)}`,
-        `${indent}1 LONG ${p.lon.toFixed(6)}`,
+        `${level + 1} MAP`,
+        `${level + 2} LATI ${p.lat.toFixed(6)}`,
+        `${level + 2} LONG ${p.lon.toFixed(6)}`
       );
     });
   download(out.join("\r\n"), "corrected.ged", "text/plain");
